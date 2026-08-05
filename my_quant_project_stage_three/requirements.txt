@@ -1,0 +1,7 @@
+pandas
+numpy
+scipy
+pymongo
+quantaxis
+statsmodels
+tqdm

@@ -1,0 +1,8 @@
+# 忽略数据与因子库目录
+data/
+*.parquet
+*.sqlite
+
+# 忽略缓存
+__pycache__/
+*.pyc

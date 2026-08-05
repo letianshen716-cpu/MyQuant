@@ -1,0 +1,10 @@
+# 忽略所有 Python 缓存
+__pycache__/
+**/__pycache__/
+*.pyc
+
+# 忽略所有阶段的 data 文件夹（核心！）
+**/data/
+
+# 忽略系统文件
+.DS_Store
