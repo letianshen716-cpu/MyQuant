@@ -91,5 +91,4 @@ class BatchFactorEvaluator:
             results.append(res)
             
         df_results = pd.DataFrame(results)
-        print("\n全局 Alpha 能力汇总如下：")
         return df_results

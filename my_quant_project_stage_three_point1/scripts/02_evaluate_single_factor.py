@@ -10,14 +10,11 @@ import scipy.stats as st
 from config import MONGO_URI, FACTOR_ALL_HISTORY_PATH, MONTHLY_FRICTION_COST
 
 def run_monthly_realistic_evaluation():
-    print("正在加载全量历史因子数据...")
     df_factor = pd.read_csv(FACTOR_ALL_HISTORY_PATH, dtype={'code': str})
     df_factor['code'] = df_factor['code'].astype(str).str.zfill(6)
     df_factor['date'] = pd.to_datetime(df_factor['date'])
     
     start_date = df_factor['date'].min()
-
-    print("提取底层行情，计算月度收益...")
     client = pymongo.MongoClient(MONGO_URI)
     collection = client['quantaxis']['stock_day']
     

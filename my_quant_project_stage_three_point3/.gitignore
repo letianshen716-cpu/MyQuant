@@ -1,0 +1,14 @@
+# Python 编译缓存
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 本地量化数据（避免误传超大文件）
+data/raw/
+data/processed/*.parquet
+data/processed/*.csv
+
+# 系统与编辑器配置
+.vscode/
+.idea/
+.DS_Store
