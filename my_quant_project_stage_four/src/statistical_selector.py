@@ -22,13 +22,13 @@ class StatisticalSelector:
         """
         根据输入维度智能选择筛选策略
         """
-        print(f"\n>>> [特征选择] 执行特征有效性评估 (候选因子: {len(factor_cols)})")
+        print(f"\n特征有效性评估 (候选因子: {len(factor_cols)})")
         
        
         if len(factor_cols) <= 10:
-            print(f"   -> 侦测到候选因子数较少 (仅 {len(factor_cols)} 个)，且已在前置步骤完成正交化。")
-            print("   -> 极低信噪比环境下，对少量独立核心信号执行 Lasso 易导致信号被过度惩罚。")
-            print("   -> 触发智能保护机制：跳过 Lasso 稀疏化，全量保留进入多因子组合回测！")
+            print(f"侦测到候选因子数较少 {len(factor_cols)} 个，且已在前置步骤完成正交化。")
+            print(" 极低信噪比环境下，对少量独立核心信号执行 Lasso 易导致信号被过度惩罚。")
+            print(" 触发智能保护机制：跳过 Lasso 稀疏化，全量保留进入多因子组合回测")
             return factor_cols
 
 
@@ -50,16 +50,16 @@ class StatisticalSelector:
             lasso = LassoCV(alphas=alphas_grid, cv=cv_folds, random_state=42, n_jobs=-1, max_iter=10000)
             lasso.fit(X, y)
             
-            print(f"   -> 最佳 L1 惩罚系数 (Alpha): {lasso.alpha_:.6f}")
+            print(f"最佳 L1 惩罚系数 (Alpha): {lasso.alpha_:.6f}")
             
             importance = pd.Series(np.abs(lasso.coef_), index=factor_cols)
             selected = importance[importance > min_coef].sort_values(ascending=False).index.tolist()
             
             if selected:
-                print(f"   -> LassoCV 筛选完毕。保留核心因子数: {len(selected)}")
+                print(f" LassoCV 筛选完毕。保留核心因子数: {len(selected)}")
                 return selected
             else:
-                print("   -> 降级处理：筛选后无有效因子，强制回退并保留全部原始因子。")
+                print(" 降级处理：筛选后无有效因子，强制回退并保留全部原始因子。")
                 return factor_cols
 
         except Exception as e:

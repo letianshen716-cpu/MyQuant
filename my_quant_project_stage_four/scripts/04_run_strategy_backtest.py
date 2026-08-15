@@ -70,7 +70,7 @@ def run_strategy_pipeline():
 
 
     for display_name, method in synthesis_methods:
-        print(f"\n--- 正在评估方案: 【{display_name}】 ---")
+        print(f"\n方案: 【{display_name}】")
         df_scored = synthesizer.synthesize(
             df=df_ready,
             factor_cols=core_factors,
@@ -109,9 +109,9 @@ def run_strategy_pipeline():
         df_summary.to_csv(metrics_file, index=False, encoding='utf-8-sig')
 
         print(f"\n最优模型【{best_method_name}】的净值与持仓明细已成功落盘：")
-        print(f"   -> 逐月净值时序: {nav_file}")
-        print(f"   -> 持仓变动流水: {holdings_file}")
-        print(f"   -> 绩效指标汇总: {metrics_file}")
+        print(f"逐月净值时序: {nav_file}")
+        print(f"持仓变动流水: {holdings_file}")
+        print(f"绩效指标汇总: {metrics_file}")
     
     if best_nav_df is not None:
         nav_series = best_nav_df.copy()

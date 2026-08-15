@@ -10,17 +10,14 @@ import numpy as np
 import pandas as pd
 import QUANTAXIS as QA
 
-# 全局注入 SSL 补丁
 ssl.SSLContext.load_default_certs = lambda *args, **kwargs: None
 ssl.create_default_context = lambda *args, **kwargs: ssl._create_unverified_context()
 
 
 def build_technical_features(code_list: List[str], batch_size: int = 300) -> pd.DataFrame:
     """分批提取日线行情并复权，计算技术面量价因子，降频为月度截面"""
-    print(f"【步骤 1/3】分批提取前复权 (QFQ) 量价数据 (共 {len(code_list)} 只股票，批次大小: {batch_size})")
+    print(f"分批提取前复权 (QFQ) 量价数据，共 {len(code_list)} 只股票，批次大小: {batch_size}")
 
-    # 1. 自动探测板块集合并解析
-    print("   -> 正在多集合自动探测并展开行业板块映射...")
     industry_map = {}
     try:
         target_colls = ['stock_block', 'stock_block_tdx', 'stock_block_ths']
@@ -39,7 +36,7 @@ def build_technical_features(code_list: List[str], batch_size: int = 300) -> pd.
                     break
 
         if industry_map:
-            print(f"   ->  成功载入并匹配 {len(industry_map)} 只股票的行业板块分类数据！")
+            print(f"匹配 {len(industry_map)} 只股票的行业板块分类数据")
         else:
             print(" 未在数据库探测到已存储的板块数据，启用代码前缀降级策略。")
     except Exception as e:
@@ -65,14 +62,13 @@ def build_technical_features(code_list: List[str], batch_size: int = 300) -> pd.
             else:
                 return 'Others'
 
-    # 2. 分批拉取与因子滚动计算
     all_monthly_chunks = []
     total_batches = (len(code_list) + batch_size - 1) // batch_size
 
     for idx in range(0, len(code_list), batch_size):
         chunk_codes = code_list[idx : idx + batch_size]
         curr_batch = idx // batch_size + 1
-        print(f"   -> 正在处理批次 [{curr_batch}/{total_batches}] ({len(chunk_codes)} 只股票)")
+        print(f"批次 [{curr_batch}/{total_batches}] ({len(chunk_codes)} 只股票)")
 
         try:
             qa_data = QA.QA_fetch_stock_day_adv(chunk_codes, '2020-01-01', '2026-12-31')
@@ -85,7 +81,7 @@ def build_technical_features(code_list: List[str], batch_size: int = 300) -> pd.
 
             df_raw = qa_data_qfq.data.reset_index()
         except Exception as e:
-            print(f"  批次 [{curr_batch}] 提取异常，已跳过: {e}")
+            print(f"[{curr_batch}] 提取异常，已跳过: {e}")
             continue
 
         if df_raw.empty:
@@ -130,17 +126,16 @@ def build_technical_features(code_list: List[str], batch_size: int = 300) -> pd.
 
 def build_fundamental_features(code_list: list, batch_size: int = 500) -> pd.DataFrame:
     """自适应探测字段并分批拉取财务数据，避免内存溢出与断连"""
-    print(f"【步骤 2/3】正在从数据库分批加载全市场财报数据 (批次大小: {batch_size})...")
+    print(f"数据库分批加载全市场财报数据 (批次大小: {batch_size})")
 
     coll = QA.DATABASE.financial
     
-    # 1. 探针：获取一条最新记录以确定真实的底层字段名，避免全量提取 300+ 个无用字段撑爆内存
+    # 获取一条最新记录以确定真实的底层字段名，避免全量提取 300+ 个无用字段撑爆内存
     sample_doc = coll.find_one({'report_date': {'$gte': '2020-01-01'}})
     if not sample_doc:
         sample_doc = coll.find_one() # 降级探测
         
     if not sample_doc:
-        print("⚠️ 数据库 financial 集合完全为空！请确认是否成功执行了下载。")
         return pd.DataFrame(columns=['code', 'safe_date', 'roe'])
 
     profit_candidates = ['净利润', '归属于母公司所有者的净利润', '归属于母公司股东的净利润', '归母净利润', 'net_profit', 'netProfit']
@@ -157,14 +152,14 @@ def build_fundamental_features(code_list: list, batch_size: int = 500) -> pd.Dat
     if asset_col: projection[asset_col] = 1
     if roe_col: projection[roe_col] = 1
 
-    print(f"   -> 探测到财报底层字段，启用轻量化提取投影: {list(projection.keys())}")
+    print(f"探测到财报底层字段，启用轻量化提取投影: {list(projection.keys())}")
 
     fin_records = []
     total_batches = (len(code_list) + batch_size - 1) // batch_size
     
     from datetime import datetime
     
-    # 2. 分批按代码拉取，防范 BSON Size Limit 与 MemoryError
+    # 分批按代码拉取，防范 BSON Size Limit 与 MemoryError
     for idx in range(0, len(code_list), batch_size):
         chunk_codes = code_list[idx : idx + batch_size]
         curr_batch = idx // batch_size + 1
@@ -191,7 +186,7 @@ def build_fundamental_features(code_list: list, batch_size: int = 500) -> pd.Dat
         return pd.DataFrame(columns=['code', 'safe_date', 'roe'])
 
     df_all_fin = pd.DataFrame(fin_records)
-    print(f"   -> 成功批量获取 {len(df_all_fin)} 条财报数据，正在计算 ROE 并对齐 PIT 时间点...")
+    print(f"获取 {len(df_all_fin)} 条财报数据，正在计算 ROE 并对齐 PIT 时间点")
 
     df_fund = pd.DataFrame()
     df_fund['code'] = df_all_fin['code'].astype(str).str.zfill(6)
@@ -220,7 +215,7 @@ def build_fundamental_features(code_list: list, batch_size: int = 500) -> pd.Dat
 
     df_fund['safe_date'] = df_fund['report_date'].apply(get_safe_date)
     df_fund = df_fund.dropna(subset=['roe']).sort_values('report_date').drop_duplicates(subset=['code', 'safe_date'], keep='last')
-    print(f"   -> 有效 ROE 基本面记录: {len(df_fund)} 条")
+    print(f" 有效 ROE 基本面记录: {len(df_fund)} 条")
     return df_fund[['code', 'safe_date', 'roe']]
 
 
@@ -229,12 +224,11 @@ def build_pit_wide_table(code_list: Optional[List[str]] = None) -> pd.DataFrame:
     if code_list is None:
         code_list = QA.DATABASE.stock_day.distinct('code')
 
-    print(f"【步骤 3/3】准备处理 {len(code_list)} 只股票，执行 PIT 严格对齐")
+    print(f"处理 {len(code_list)} 只股票，执行 PIT 严格对齐")
     df_monthly = build_technical_features(code_list, batch_size=300)
     df_fund = build_fundamental_features(code_list)
 
     if df_fund.empty:
-        print("财务数据计算为空，ROE 将自动填充为空值！")
         df_monthly['roe'] = np.nan
         return df_monthly
 
@@ -252,5 +246,5 @@ def build_pit_wide_table(code_list: Optional[List[str]] = None) -> pd.DataFrame:
     df_all_factors['roe'] = df_all_factors.groupby('date')['roe'].transform(lambda x: x.fillna(x.median()))
     df_all_factors['roe'] = df_all_factors['roe'].fillna(0.0)
 
-    print(f" 大宽表构建完成！有效截面总行数: {len(df_all_factors)} 行。")
+    print(f" 大宽表构建完成，有效截面总行数: {len(df_all_factors)} 行。")
     return df_all_factors

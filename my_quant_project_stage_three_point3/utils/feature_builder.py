@@ -1,21 +1,18 @@
 import ssl
-
-# 全局注入 SSL 补丁
-ssl.SSLContext.load_default_certs = lambda *args, **kwargs: None
-ssl.create_default_context = lambda *args, **kwargs: ssl._create_unverified_context()
-
 import gc
 import pymongo
 import pandas as pd
 import numpy as np
 import QUANTAXIS as QA
 
+# 全局注入 SSL 补丁
+ssl.SSLContext.load_default_certs = lambda *args, **kwargs: None
+ssl.create_default_context = lambda *args, **kwargs: ssl._create_unverified_context()
+
 def build_technical_features(code_list: list, batch_size: int = 300) -> pd.DataFrame:
     """分批提取日线行情并复权，计算技术面因子，降频为月度截面"""
     print(f"通过 QUANTAXIS 分批提取 (QFQ) 量价数据 (共 {len(code_list)} 只股票，批次大小: {batch_size})")
-    
-    # 1. 预先读取行业板块映射
-    print(" 正在多集合自动探测并展开行业板块映射")
+
     industry_map = {}
     try:
         target_colls = ['stock_block', 'stock_block_tdx', 'stock_block_ths']
@@ -34,11 +31,11 @@ def build_technical_features(code_list: list, batch_size: int = 300) -> pd.DataF
                     break
                     
         if industry_map:
-            print(f" 成功载入并匹配 {len(industry_map)} 只股票的行业板块分类数据！")
+            print(f" 成功载入并匹配 {len(industry_map)} 只股票的行业板块分类数据")
         else:
-            print("未在数据库探测到已存储的板块数据，启用代码前缀降级策略。")
+            print("未在数据库探测到已存储的板块数据，启用代码前缀降级策略")
     except Exception as e:
-        print(f"读取板块数据失败，原因: {e}，启用代码前缀降级策略。")
+        print(f"读取板块数据失败，原因: {e}，启用代码前缀降级策略")
 
     def map_industry_accurate(code):
         clean_code = str(code).zfill(6)
@@ -57,14 +54,13 @@ def build_technical_features(code_list: list, batch_size: int = 300) -> pd.DataF
             elif clean_code.startswith(('300', '688')): return 'Growth/Tech'
             else: return 'Others'
 
-    # 2. 分批拉取行情并计算，防止内存溢出与断连
     all_monthly_chunks = []
     total_batches = (len(code_list) + batch_size - 1) // batch_size
     
     for idx in range(0, len(code_list), batch_size):
         chunk_codes = code_list[idx : idx + batch_size]
         curr_batch = idx // batch_size + 1
-        print(f"   -> 正在处理批次 [{curr_batch}/{total_batches}] ({len(chunk_codes)} 只股票)")
+        print(f"正在处理批次 [{curr_batch}/{total_batches}] ({len(chunk_codes)} 只股票)")
         
         try:
             qa_data = QA.QA_fetch_stock_day_adv(chunk_codes, '2020-01-01', '2026-12-31')
@@ -123,34 +119,42 @@ def build_technical_features(code_list: list, batch_size: int = 300) -> pd.DataF
 
 
 def build_fundamental_features(code_list: list) -> pd.DataFrame:
-    """自适应探测 MongoDB 财报字段，计算 ROE 并对齐 PIT 安全日期"""
-    
+    """自适应探测 MongoDB 财报字段，分批提取以防止 WinError 10054 断连"""
     coll = QA.DATABASE.financial
-    try:
-        cursor = coll.find(
-            {
-                'code': {'$in': code_list},
-                'report_date': {'$gte': '2020-01-01'}
-            },
-            {'_id': 0}
-        )
-        fin_records = list(cursor)
-        
-        if not fin_records:
+    fin_records = []
+    batch_size = 500  # 设定 500 只股票为一个批次
+    
+    print(f" 开始分批提取财报数据 (批次大小: {batch_size})")
+
+    for i in range(0, len(code_list), batch_size):
+        chunk_codes = code_list[i : i + batch_size]
+        try:
+            # 尝试字符串格式日期
             cursor = coll.find(
                 {
-                    'code': {'$in': code_list},
-                    'report_date': {'$gte': 20200101}
+                    'code': {'$in': chunk_codes},
+                    'report_date': {'$gte': '2020-01-01'}
                 },
                 {'_id': 0}
             )
-            fin_records = list(cursor)
-    except Exception as e:
-        print(f"原生读取 financial 集合异常: {e}")
-        fin_records = []
+            chunk_records = list(cursor)
+            
+            if not chunk_records:
+                cursor = coll.find(
+                    {
+                        'code': {'$in': chunk_codes},
+                        'report_date': {'$gte': 20200101}
+                    },
+                    {'_id': 0}
+                )
+                chunk_records = list(cursor)
+                
+            fin_records.extend(chunk_records)
+        except Exception as e:
+            print(f"批次读取异常: {e}")
 
     if not fin_records:
-        print("未检索到 2020 年以后的财务记录！")
+        print("未检索到 2020 年以后的财务记录")
         return pd.DataFrame(columns=['code', 'safe_date', 'roe'])
 
     df_all_fin = pd.DataFrame(fin_records)
@@ -174,20 +178,20 @@ def build_fundamental_features(code_list: list) -> pd.DataFrame:
 
     # 计算 ROE
     if roe_col is not None:
-        print(f"   -> 发现直接 ROE 字段: [{roe_col}]")
+        print(f"发现直接 ROE 字段: [{roe_col}]")
         df_fund['roe'] = pd.to_numeric(df_all_fin[roe_col], errors='coerce')
     elif profit_col is not None and asset_col is not None:
-        print(f"   -> 通过 [{profit_col}] / [{asset_col}] 动态计算 ROE")
+        print(f"通过 [{profit_col}] / [{asset_col}] 动态计算 ROE")
         p = pd.to_numeric(df_all_fin[profit_col], errors='coerce')
         a = pd.to_numeric(df_all_fin[asset_col], errors='coerce')
         df_fund['roe'] = p / a
     else:
         numeric_cols = df_all_fin.select_dtypes(include=[np.number]).columns
         if len(numeric_cols) >= 2:
-            print(f"   -> 未直接匹配到标准中文字段，自动使用数值列 [{numeric_cols[0]}] 与 [{numeric_cols[1]}]")
+            print(f"未直接匹配到标准中文字段，自动使用数值列 [{numeric_cols[0]}] 与 [{numeric_cols[1]}]")
             df_fund['roe'] = df_all_fin[numeric_cols[0]] / (df_all_fin[numeric_cols[1]].abs() + 1e-5)
         else:
-            print("无法识别财报字段，填充默认中位数。")
+            print("无法识别财报字段，填充默认中位数")
             df_fund['roe'] = 0.08
 
     df_fund['roe'] = df_fund['roe'].replace([np.inf, -np.inf], np.nan)
@@ -215,12 +219,12 @@ def build_pit_wide_table(code_list=None) -> pd.DataFrame:
     if code_list is None:
         code_list = QA.DATABASE.stock_day.distinct('code')
         
-    print(f"【步骤 3/3】准备处理 {len(code_list)} 只股票，执行 PIT 严格对齐...")
+    print(f"准备处理 {len(code_list)} 只股票，执行 PIT 严格对齐")
     df_monthly = build_technical_features(code_list, batch_size=300) 
     df_fund = build_fundamental_features(code_list)
     
     if df_fund.empty:
-        print("财务数据计算为空，ROE 将自动填充为空值！")
+        print("财务数据计算为空，ROE 将自动填充为空值")
         df_monthly['roe'] = np.nan
         return df_monthly
         
@@ -237,5 +241,5 @@ def build_pit_wide_table(code_list=None) -> pd.DataFrame:
     df_all_factors['roe'] = df_all_factors.groupby('date')['roe'].transform(lambda x: x.fillna(x.median()))
     df_all_factors['roe'] = df_all_factors['roe'].fillna(0.0)
     
-    print(f"大宽表构建完成！有效截面总行数: {len(df_all_factors)} 行。")
+    print(f"大宽表构建完成，有效截面总行数: {len(df_all_factors)} 行。")
     return df_all_factors

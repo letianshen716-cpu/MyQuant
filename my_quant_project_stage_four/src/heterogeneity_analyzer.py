@@ -34,7 +34,6 @@ class HeterogeneityAnalyzer:
                 return ic
             return np.nan
 
-        # 双重聚合：[日期, 分组类别]
         ic_panel = df_valid.groupby(['date', group_col]).apply(calc_ic).reset_index(name='IC')
         ic_panel = ic_panel.dropna(subset=['IC'])
 

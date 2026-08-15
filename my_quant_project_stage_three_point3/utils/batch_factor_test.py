@@ -5,7 +5,6 @@ from scipy.linalg import eigh
 from sklearn.linear_model import LassoCV
 import warnings
 
-# 忽略所有底层数学警告，保持控制台整洁
 warnings.filterwarnings('ignore')
 
 class BatchFactorEvaluator:
@@ -21,8 +20,7 @@ class BatchFactorEvaluator:
         """绝对中位差 (MAD) 去极值法"""
         median = s.median()
         mad = (s - median).abs().median()
-        
-        # 【核心修复1】：如果 MAD 为 0（小样本极易发生），直接返回原值，防止把所有数据抹平
+
         if mad == 0 or pd.isna(mad):
             return s
             
@@ -33,8 +31,7 @@ class BatchFactorEvaluator:
     def _zscore_standardize(self, s: pd.Series) -> pd.Series:
         """Z-score 标准化"""
         std = s.std()
-        
-        # 【核心修复2】：如果标准差为 0，防止触发除以 0 导致全列变成 NaN
+
         if pd.isna(std) or std == 0:
             return pd.Series(0.0, index=s.index)
             
@@ -108,7 +105,7 @@ class BatchFactorEvaluator:
 
     def run_batch_evaluation(self, df: pd.DataFrame, factor_cols: list) -> pd.DataFrame:
         """运行所有因子的批量检验并输出汇总表"""
-        print(f"\n开始批量检验 {len(factor_cols)} 个核心因子")
+        print(f"\n检验 {len(factor_cols)} 个核心因子")
         results = []
         for i, factor in enumerate(factor_cols, 1):
             print(f"   [{i}/{len(factor_cols)}] 正在验证: {factor}")
@@ -124,7 +121,7 @@ class FactorOrthogonalizer:
         self.min_stocks = min_stocks
 
     def process(self, df: pd.DataFrame, factor_cols: list) -> pd.DataFrame:
-        print(f"\n实施对称正交化，优化信息结构，处理因子数: {len(factor_cols)}...")
+        print(f"\n对称正交化，优化信息结构，处理因子数: {len(factor_cols)}")
         df_orth = df.copy()
         
         def symmetric_orth(group):
@@ -164,8 +161,7 @@ class StatisticalSelector:
             return factor_cols
             
         X, y = df_valid[factor_cols], df_valid[target]
-        
-        # 【核心修复4】：动态调整 LassoCV 的折数，以适应小样本池
+     
         cv_folds = min(5, len(df_valid) // 2)
         if cv_folds < 2:
             return factor_cols

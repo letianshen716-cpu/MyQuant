@@ -13,7 +13,7 @@ from config import WIDE_TABLE_PATH
 def main():
     df_all_factors = build_pit_wide_table() 
     df_all_factors.to_parquet(WIDE_TABLE_PATH, index=False) 
-    print(f"大宽表已保存至: {WIDE_TABLE_PATH}[cite: 5]")
+    print(f"大宽表已保存至: {WIDE_TABLE_PATH}")
 
 if __name__ == '__main__':
     main()

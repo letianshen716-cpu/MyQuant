@@ -19,7 +19,7 @@ def main():
     if not all_codes:
         return
         
-    print(f">>> 共探测到 {len(all_codes)} 只股票。")
+    print(f"探测到 {len(all_codes)} 只股票。")
     
     # 将全市场代码传入构建引擎
     df_all_factors = build_pit_wide_table(all_codes)

@@ -7,7 +7,6 @@ import ssl
 ssl.SSLContext.load_default_certs = lambda *args, **kwargs: None
 ssl.create_default_context = lambda *args, **kwargs: ssl._create_unverified_context()
 
-# 补丁打完后，再安全地导入其他模块
 from utils.feature_builder import build_pit_wide_table
 from config import WIDE_TABLE_PATH
 

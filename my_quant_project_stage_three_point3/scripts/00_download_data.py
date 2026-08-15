@@ -1,13 +1,12 @@
 import ssl
 
-# 全局 SSL 补丁
 ssl.SSLContext.load_default_certs = lambda *args, **kwargs: None
 ssl.create_default_context = lambda *args, **kwargs: ssl._create_unverified_context()
 
 import QUANTAXIS as QA
 
 def run_download():
-    print(">>>  正在下载/更新股票板块数据")
+    print("下载更新股票板块数据")
     try:
         QA.QA_SU_save_stock_block('tdx')
     except Exception as e:

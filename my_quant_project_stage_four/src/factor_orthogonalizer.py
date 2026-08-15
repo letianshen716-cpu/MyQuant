@@ -23,7 +23,7 @@ class FactorOrthogonalizer:
         在每个截面上对输入的多维因子执行对称正交化 (Symmetric Orthogonalization)
         变化公式: S = U * Lambda^(-1/2) * U^T, F_orth = F * S
         """
-        print(f"\n>>> [因子正交化] 实施对称正交化处理 (输入因子数: {len(factor_cols)})...")
+        print(f"\n实施对称正交化处理，输入因子数: {len(factor_cols)}")
         df_orth = df.copy()
 
         def symmetric_orth(group: pd.DataFrame) -> pd.DataFrame:

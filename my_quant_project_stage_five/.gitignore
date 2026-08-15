@@ -1,0 +1,36 @@
+# Python 编译缓存
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# 虚拟环境
+env/
+venv/
+ENV/
+.env
+
+# 数据存储（量化大文件严禁提交到 Git）
+data/raw_data/*
+data/processed_data/*.parquet
+data/processed_data/*.csv
+!data/raw_data/.gitkeep
+!data/processed_data/.gitkeep
+
+# 风险看板与生成的图片（可按需忽略）
+docs/reports/*.png
+docs/reports/*.pdf
+
+# Jupyter Notebook 缓存
+.ipynb_checkpoints
+
+# 编辑器与 IDE 配置
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# 运行日志
+*.log

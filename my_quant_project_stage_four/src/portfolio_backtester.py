@@ -102,7 +102,7 @@ class PortfolioBacktester:
         :param benchmark_col: 基准收益率列名 (若为空，则以全市场截面等权收益为基准)
         :return: (nav_df, holdings_df, metrics_dict)
         """
-        print(f">>> [回测引擎] 启动策略回测 (选股模式: Top {self.top_n if self.top_n else str(self.top_quantile*100)+'%'}, 费率: {self.friction_cost*100:.2f}%)...")
+        print(f"启动策略回测 (选股模式: Top {self.top_n if self.top_n else str(self.top_quantile*100)+'%'}, 费率: {self.friction_cost*100:.2f}%)")
 
         dates = sorted(df['date'].unique())
         nav_records = []
@@ -175,8 +175,6 @@ class PortfolioBacktester:
 
         # 7. 计算全维度绩效指标
         metrics_dict = self.calculate_performance_metrics(nav_df)
-
-        print(">>> [回测引擎] 回测完成！核心指标计算就绪。")
         return nav_df, holdings_df, metrics_dict
 
     def calculate_performance_metrics(self, nav_df: pd.DataFrame) -> Dict[str, float]:

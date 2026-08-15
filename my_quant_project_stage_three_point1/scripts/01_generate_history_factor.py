@@ -58,7 +58,7 @@ def auto_extract_all_data():
         
         valid_rows = len(df_factor)
         total_rows += valid_rows
-        print(f"  -> 本年度有效因子共 {valid_rows} 行。")
+        print(f"本年度有效因子共 {valid_rows} 行。")
         
         # 追加写入 CSV (动态使用 config 路径)
         write_header = not os.path.exists(FACTOR_ALL_HISTORY_PATH)

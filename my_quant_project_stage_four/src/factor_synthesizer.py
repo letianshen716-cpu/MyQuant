@@ -47,10 +47,10 @@ class FactorSynthesizer:
 
     def synthesize_equal_weight(self, df: pd.DataFrame, factor_cols: List[str]) -> pd.DataFrame:
         """
-        方案一：等权加权合成 (Equal Weighting Benchmark)
+        等权加权合成
         Score_i = 1/K * \sum f_{i,k}
         """
-        print(f">>> [多因子合成] 正在执行等权合成 (因子数: {len(factor_cols)})...")
+        print(f"正在执行等权合成，因子数: {len(factor_cols)}")
         df_out = df.copy()
         df_out['composite_score'] = df_out[factor_cols].mean(axis=1)
         return df_out
@@ -64,7 +64,7 @@ class FactorSynthesizer:
         weight_metric: Literal['ic', 'ir'] = 'ir'
     ) -> pd.DataFrame:
         """
-        方案二：滚动动态 IC / IC-IR 动态加权
+        滚动动态 IC / IC-IR 动态加权
         严格采用历史 t-1 期以前的数据计算当期权重，防范前瞻偏差
 
         :param df: 输入因子宽表
@@ -73,7 +73,7 @@ class FactorSynthesizer:
         :param rolling_window: 滚动窗口大小 (月)
         :param weight_metric: 'ic' (基于平均IC加权) 或 'ir' (基于IC/Std加权)
         """
-        print(f">>> [多因子合成] 正在计算滚动 {rolling_window} 个月的动态 {weight_metric.upper()} 权重")
+        print(f"滚动 {rolling_window} 个月的动态 {weight_metric.upper()} 权重")
         df_out = df.copy()
 
         # 1. 计算历史 IC 时序
@@ -114,7 +114,7 @@ class FactorSynthesizer:
         shrinkage_reg: float = 1e-3
     ) -> pd.DataFrame:
         """
-        方案三：最大化复合 IR 优化加权 (Max Composite IR Optimization)
+        最大化复合 IR 优化加权
         目标权重 w^* ∝ (\Sigma + \lambda I)^{-1} * IC
         结合压缩协方差估计 (Shrinkage Regularization)，抑制病态逆矩阵的扰动
 
@@ -124,7 +124,7 @@ class FactorSynthesizer:
         :param rolling_window: 历史滚动窗口 (月)
         :param shrinkage_reg: 协方差对角岭正则化系数
         """
-        print(f">>> [多因子合成] 正在求解最大化复合 IR 一阶最优权重 (窗口: {rolling_window}M, 正则: {shrinkage_reg})...")
+        print(f"正在求解最大化复合 IR 一阶最优权重，窗口: {rolling_window}M, 正则: {shrinkage_reg}")
         df_out = df.copy()
 
         # 1. 计算历史 IC 时序

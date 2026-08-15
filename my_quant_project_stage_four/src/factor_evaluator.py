@@ -37,7 +37,6 @@ class FactorEvaluator:
         median = s.median()
         mad = (s - median).abs().median()
 
-        # 样本过小或全同分布时防崩溃
         if mad == 0 or pd.isna(mad):
             return s
 
@@ -57,7 +56,7 @@ class FactorEvaluator:
         """
         对指定因子在每个交易日截面上独立执行 MAD 去极值与 Z-score 标准化
         """
-        print(f">>> [预处理] 正在执行横截面 MAD 去极值 (倍数: {self.mad_multiplier}) 与 Z-score 标准化...")
+        print(f"横截面 MAD 去极值 (倍数: {self.mad_multiplier}) 与 Z-score 标准化")
         df_processed = df.copy()
 
         def process_daily(group: pd.DataFrame) -> pd.DataFrame:
@@ -140,7 +139,7 @@ class FactorEvaluator:
         target_col: str = 'ret_next_month'
     ) -> pd.DataFrame:
         """批量运行全量单因子实证检验"""
-        print(f"\n>>> [批量检验] 开始检验 {len(factor_cols)} 个目标因子...")
+        print(f"\n检验 {len(factor_cols)} 个目标因子")
         results = []
         for i, factor in enumerate(factor_cols, 1):
             print(f"   [{i}/{len(factor_cols)}] 正在验证: {factor}")
